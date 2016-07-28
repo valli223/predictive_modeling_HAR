@@ -134,6 +134,7 @@ $(document).ready(function () {
 <li><a href="#prediction-model-selection">Prediction Model Selection</a></li>
 </ul></li>
 <li><a href="#prediction-and-output">Prediction and Output</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
 <li><a href="#references">References</a></li>
 </ul>
 </div>
@@ -208,10 +209,6 @@ $(document).ready(function () {
 <div id="prediction-and-output" class="section level2">
 <h2>Prediction and Output</h2>
 <p>In this section, we use the model that we selected in the last section to predict the test data. After comparing with the correct results, we observe that our model gives <strong>99.37</strong> Accuracy.</p>
-<pre class="r"><code>fitmodel &lt;- model5
-
-test$classe &lt;- predict(fitmodel, newdata = test)
-testPred &lt;- test$classe</code></pre>
 <p>The predictions for the test data set for each problem id are as below</p>
 <pre class="r"><code>  dt_res &lt;- data.frame(problem_id = test$problem_id,
              classe = test$classe)
@@ -238,6 +235,10 @@ testPred &lt;- test$classe</code></pre>
 ## 18         18      B
 ## 19         19      B
 ## 20         20      B</code></pre>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>On using the best fit model, that was built in the above sections, on the test cases provided, it was observed that they predicted the outcomes with 100% accuracy confirming our model accuracy and the basis of choosing the aforesaid model.</p>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>

@@ -222,13 +222,11 @@ Plots showing the models with highest accuracies
 
 In this section, we use the model that we selected in the last section to predict the test data. After comparing with the correct results, we observe that our model gives **`r round(p5[1] * 100, 2)`** Accuracy.
 
-```{r Results}
+```{r Results, echo = FALSE}
 
 fitmodel <- model5
 
 test$classe <- predict(fitmodel, newdata = test)
-testPred <- test$classe
-
 ```
 
 The predictions for the test data set for each problem id are as below
@@ -238,6 +236,10 @@ The predictions for the test data set for each problem id are as below
   
   dt_res
 ```
+
+## Conclusion
+
+On using the best fit model, that was built in the above sections, on the test cases provided, it was observed that they predicted the outcomes with 100% accuracy confirming our model accuracy and the basis of choosing the aforesaid model.
 
 ## References
 
