@@ -1,5 +1,5 @@
 ---
-title: "Prediction of Human Activity Recognition"
+title: "Predictive Modeling of Human Activity Recognition"
 author: "Vamsee Addepalli"
 date: "28 July 2016"
 output: 
