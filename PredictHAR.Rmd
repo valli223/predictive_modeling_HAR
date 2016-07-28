@@ -1,0 +1,236 @@
+---
+title: "Prediction of Human Activity Recognition"
+author: "Vamsee Addepalli"
+date: "28 July 2016"
+output: 
+  html_document: 
+    keep_md: yes
+    toc: yes
+---  
+
+## Summary
+
+The R language has a rich set of modeling functions for classfication. And caret package tries to generize and simplize the model building process by eliminating syntactical differences between models1. In this report, an example will illustrate the application of some of the tools provided in caret package and other packages.
+
+The dataset using in this report is called Weight Lifting Exercise Dataset^1^. The aim of the dataset is to build a prediction model on common incorrect gestures during barbell lifts based on several variables collected by accelerometers.
+
+To find a accurate prediction model, we first eliminate the redundant features with too many missing values. The remain dataset is divide into three part: training set, validation set and test set. The training set is used to train three models including classification tree, Random Forest and boosting using two cross-validation methods of estimating model accuracy - Bootstrap resampling and Repeated k-fold Cross Validation. The out-of-sample accuracy is measured using validation set. By comparing the out-of-sample accuracy, we select random forest as our final model with a overall accuracy 0.9946. Finally we choose the random forest model in the testing set.
+
+## Background
+
+Human Activity Recognition - HAR - has emerged as a key research area in the last years and is gaining increasing attention, especially for the development of context-aware systems. There are many potential applications for HAR, like: elderly monitoring, life log systems for monitoring energy expenditure and for supporting weight-loss programs, and digital assistants for weight lifting exercises.
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. As part of an experiment, Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+The purpose of this document is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and predict the manner in which they did the exercise.
+
+``` {r Load_Libraries, echo = FALSE, results="hide", message=FALSE, warning=FALSE}
+## Load the required libraries
+library(caret)
+library(rpart)
+library(gbm)
+library(randomForest)
+```
+
+``` {r Data_Load, cache = TRUE, echo = FALSE}
+## Load the training and testing datasets
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+
+```
+
+## Feature Extraction
+
+```{r Preprocess, echo = FALSE}
+# preprocessing
+training[,7:159] <- sapply(training[,7:159],as.numeric) 
+testing[,7:159] <- sapply(testing[,7:159], as.numeric) 
+
+
+## feature extraction & selection
+
+# select the activity features only
+build <- training[8:160]
+test <- testing[8:160]
+
+# since test set only contains 20 observations. 
+# remove features that contains NAs in test set
+nas <- is.na(apply(test,2,sum))
+
+test <- test[,!nas]
+build <- build[,!nas]
+
+# create validation data set using Train 
+inTrain <- createDataPartition(y=build$classe, p=0.7, list=FALSE)
+train <- build[inTrain,]
+val <- build[-inTrain,]
+rm(inTrain,nas,build)
+
+str(test)
+table(test$classe)
+
+```
+
+Summary of the final datasets that are being used for model building 
+
+```{r data_summ, echo = FALSE}
+dt <- data.frame(Dataset = c("training", "validation", "testing"), 
+                 Records = c(nrow(train), nrow(val), nrow(test)) ,
+                 Columns = c(ncol(train), ncol(val), ncol(test))
+                 )
+
+dt
+```
+
+## Predictive Model
+
+In this section, we will build classification tree and boosting model for activity classification and then choose the one with the best out-of-sample accuracy.
+
+In order to maximise the accuracy of the model that is built, we will use the following cross-validation methods and estimate the resulting model accuracy for each model type.  
+
+**1. Bootstrap Resampling**    
+Bootstrap resampling involves taking random samples from the dataset (with re-selection) against which to evaluate the model. In aggregate, the results provide an indication of the variance of the models performance.  
+**2. Repeated k-fold Cross Validation**    
+The k-fold cross validation method involves splitting the dataset into k-subsets. For each subset is held out while the model is trained on all other subsets. This process is completed until accuracy is determine for each instance in the dataset, and an overall accuracy estimate is provided. This k-fold split is repeated and the final model accuracy is taken as the mean from the number of repeats.    
+   
+### Classification Tree
+
+For this model, we use a regression tree with the method `rpart`.
+
+1. Bootstrap Resampling  
+As part of this method, we shall use a bootstrap with 10 resamples to prepare a Classification Tree model. 
+
+```{r tree1, echo = FALSE}
+set.seed(123)
+# define training control
+train_control <- trainControl(method="boot", number=10)
+# train the model
+model1 <- train(classe ~ ., data = train, trControl=train_control, method="rpart")
+
+# out-of-sample errors of regression tree model using validation dataset 
+pred1 <- predict(model1, val)
+p1 <- postResample(pred1, val$classe)
+cm1 <- confusionMatrix(pred1, val$classe)
+p1
+```
+
+2. Repeated k-fold Cross Validation
+As part of this method, we shall use 10-fold cross validation with 5 repeats to estimate Classification Tree model. 
+
+```{r tree2, echo = FALSE}
+set.seed(123)
+# define training control
+train_control <- trainControl(method="repeatedcv", number=10, repeats=5)
+# train the model
+model2 <- train(classe ~ ., data = train, trControl=train_control, method="rpart")
+
+# out-of-sample errors of regression tree model using validation dataset 
+pred2 <- predict(model2, val)
+p2 <- postResample(pred2, val$classe)
+cm2 <- confusionMatrix(pred2, val$classe)
+p2
+```
+
+### Boosting
+
+For this model, we use a regression tree with the method `gbm`.
+
+1. Bootstrap Resampling  
+As part of this method, we shall use a bootstrap with 3 resamples to prepare a Boosting Tree model. 
+
+```{r boost1, echo = FALSE, cache = TRUE}
+set.seed(2)
+# define training control
+train_control <- trainControl(method="boot", number=3)
+# train the model
+model3 <- train(classe ~ ., data = train, 
+                trControl=train_control,
+                verbose = "F",
+                method="gbm")
+
+# out-of-sample errors of regression tree model using validation dataset 
+pred3 <- predict(model3, val)
+p3 <- postResample(pred3, val$classe)
+cm3 <- confusionMatrix(pred3, val$classe)
+p3
+```
+
+2. Repeated k-fold Cross Validation
+As part of this method, we shall use 3-fold cross validation with 3 repeats to prepare a  Boosting Tree model. 
+
+```{r boost2, echo = FALSE, cache = TRUE}
+set.seed(2)
+# define training control
+train_control <- trainControl(method="repeatedcv", number=3, repeats=3)
+# train the model
+model4 <- train(classe ~ ., data = train, 
+                trControl=train_control,
+                verbose = "F", 
+                method="gbm")
+
+# out-of-sample errors of regression tree model using validation dataset 
+pred4 <- predict(model4, val)
+p4 <- postResample(pred4, val$classe)
+cm4 <- confusionMatrix(pred4, val$classe)
+p4
+```
+
+### Random Forest
+
+For this model, we use a regression tree with the method `rf`.
+Here we use three fold cross validation in this model due the computational cost involved.
+
+```{r rforest, echo = FALSE, cache = TRUE}
+set.seed(123)
+# define training control
+train_control <- trainControl(method="cv", number=3)
+# train the model
+model5 <- train(classe ~ ., data = train, 
+                trControl=train_control,
+                importance = T, 
+                method="rf")
+
+# out-of-sample errors of regression tree model using validation dataset 
+pred5 <- predict(model5, val)
+p5 <- postResample(pred5, val$classe)
+cm5 <- confusionMatrix(pred5, val$classe)
+p5
+```
+
+### Prediction Model Selection
+
+The results of the above analysis is summarized to find the model having the best accuracy. We observe that **Boosting Tree model with Bootstrap Resampling Model** has the highest accuracy and so we choose it.
+
+```{r model_sel, echo = FALSE}
+dt <- data.frame(Tree_boot = p1[1],
+                 Tree_repeat_cv = p2[1],
+                 boost_boot = p3[1],
+                 boost_repeat_cv = p4[1],
+                 r_forest = p5[1]
+                 )
+
+dt
+
+ggplot(model3)
+
+ggplot(model5)
+```
+
+
+## Prediction and Output
+
+In this section, we use the model that we selected in the last section to predict the test data. After comparing with the correct results, we observe that our model gives **`r round(p3[1] * 100, 2)`** Accuracy.
+
+```{r Results}
+
+fitmodel <- model3
+
+test$classe <- predict(fitmodel, newdata = test)
+testPred <- test$classe
+
+```
+
+
+## References
+
+1: http://groupware.les.inf.puc-rio.br/har#ixzz4FgelrRFy "Human Activity Recognition"
