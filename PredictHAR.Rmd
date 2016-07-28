@@ -61,25 +61,23 @@ test <- test[,!nas]
 build <- build[,!nas]
 
 # create validation data set using Train 
-inTrain <- createDataPartition(y=build$classe, p=0.7, list=FALSE)
+inTrain <- createDataPartition(y=build$classe, p=0.64, list=FALSE)
 train <- build[inTrain,]
 val <- build[-inTrain,]
-rm(inTrain,nas,build)
 
-str(test)
-table(test$classe)
+rm(inTrain,nas,build)
 
 ```
 
 Summary of the final datasets that are being used for model building 
 
 ```{r data_summ, echo = FALSE}
-dt <- data.frame(Dataset = c("training", "validation", "testing"), 
+dt_summ <- data.frame(Dataset = c("training", "validation", "testing"), 
                  Records = c(nrow(train), nrow(val), nrow(test)) ,
                  Columns = c(ncol(train), ncol(val), ncol(test))
                  )
 
-dt
+dt_summ
 ```
 
 ## Predictive Model
@@ -145,7 +143,7 @@ train_control <- trainControl(method="boot", number=3)
 # train the model
 model3 <- train(classe ~ ., data = train, 
                 trControl=train_control,
-                verbose = "F",
+                verbose = F,
                 method="gbm")
 
 # out-of-sample errors of regression tree model using validation dataset 
@@ -165,7 +163,7 @@ train_control <- trainControl(method="repeatedcv", number=3, repeats=3)
 # train the model
 model4 <- train(classe ~ ., data = train, 
                 trControl=train_control,
-                verbose = "F", 
+                verbose = F, 
                 method="gbm")
 
 # out-of-sample errors of regression tree model using validation dataset 
@@ -199,37 +197,47 @@ p5
 
 ### Prediction Model Selection
 
-The results of the above analysis is summarized to find the model having the best accuracy. We observe that **Boosting Tree model with Bootstrap Resampling Model** has the highest accuracy and so we choose it.
+The results of the above analysis is summarized to find the model having the best accuracy. We observe that **Random Forest Model** has the highest accuracy and so we choose it.
 
 ```{r model_sel, echo = FALSE}
-dt <- data.frame(Tree_boot = p1[1],
-                 Tree_repeat_cv = p2[1],
-                 boost_boot = p3[1],
-                 boost_repeat_cv = p4[1],
-                 r_forest = p5[1]
-                 )
+  dt <- data.frame(Tree_boot = p1[1],
+                   Tree_repeat_cv = p2[1],
+                   boost_boot = p3[1],
+                   boost_repeat_cv = p4[1],
+                   r_forest = p5[1]
+                   )
+  
+  dt
+```
 
-dt
+Plots showing the models with highest accuracies
+``` {r plots, echo = FALSE}
+  ggplot(model3)
 
-ggplot(model3)
-
-ggplot(model5)
+  ggplot(model5)
 ```
 
 
 ## Prediction and Output
 
-In this section, we use the model that we selected in the last section to predict the test data. After comparing with the correct results, we observe that our model gives **`r round(p3[1] * 100, 2)`** Accuracy.
+In this section, we use the model that we selected in the last section to predict the test data. After comparing with the correct results, we observe that our model gives **`r round(p5[1] * 100, 2)`** Accuracy.
 
 ```{r Results}
 
-fitmodel <- model3
+fitmodel <- model5
 
 test$classe <- predict(fitmodel, newdata = test)
 testPred <- test$classe
 
 ```
 
+The predictions for the test data set for each problem id are as below
+``` {r results2}
+  dt_res <- data.frame(problem_id = test$problem_id,
+             classe = test$classe)
+  
+  dt_res
+```
 
 ## References
 
