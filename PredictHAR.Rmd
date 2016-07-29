@@ -14,7 +14,7 @@ The R language has a rich set of modeling functions for classfication. And caret
 
 The dataset using in this report is called Weight Lifting Exercise Dataset^1^. The aim of the dataset is to build a prediction model on common incorrect gestures during barbell lifts based on several variables collected by accelerometers.
 
-To find a accurate prediction model, we first eliminate the redundant features with too many missing values. The remain dataset is divide into three part: training set, validation set and test set. The training set is used to train three models including classification tree, Random Forest and boosting using two cross-validation methods of estimating model accuracy - Bootstrap resampling and Repeated k-fold Cross Validation. The out-of-sample accuracy is measured using validation set. By comparing the out-of-sample accuracy, we select random forest as our final model with a overall accuracy 0.9946. Finally we choose the random forest model in the testing set.
+To find a accurate prediction model, we first eliminate the redundant features with too many missing values. The remain dataset is divide into three part: training set, validation set and test set. The training set is used to train three models including classification tree, Random Forest and boosting using two cross-validation methods of estimating model accuracy - Bootstrap resampling and Repeated k-fold Cross Validation. The out-of-sample accuracy is measured using validation set. By comparing the out-of-sample accuracy, we select random forest as our final model with a overall accuracy **99.37%**. Finally we choose the random forest model in the testing set.
 
 ## Background
 
@@ -42,6 +42,7 @@ testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-tes
 ## Feature Extraction
 
 ```{r Preprocess, echo = FALSE}
+set.seed(123)
 # preprocessing
 training[,7:159] <- sapply(training[,7:159],as.numeric) 
 testing[,7:159] <- sapply(testing[,7:159], as.numeric) 
@@ -88,14 +89,14 @@ In order to maximise the accuracy of the model that is built, we will use the fo
 
 **1. Bootstrap Resampling**    
 Bootstrap resampling involves taking random samples from the dataset (with re-selection) against which to evaluate the model. In aggregate, the results provide an indication of the variance of the models performance.  
-**2. Repeated k-fold Cross Validation**    
+**2. Repeated k-fold Cross Validation**     
 The k-fold cross validation method involves splitting the dataset into k-subsets. For each subset is held out while the model is trained on all other subsets. This process is completed until accuracy is determine for each instance in the dataset, and an overall accuracy estimate is provided. This k-fold split is repeated and the final model accuracy is taken as the mean from the number of repeats.    
    
 ### Classification Tree
 
 For this model, we use a regression tree with the method `rpart`.
 
-1. Bootstrap Resampling  
+1. Bootstrap Resampling   
 As part of this method, we shall use a bootstrap with 10 resamples to prepare a Classification Tree model. 
 
 ```{r tree1, echo = FALSE}
@@ -112,7 +113,7 @@ cm1 <- confusionMatrix(pred1, val$classe)
 p1
 ```
 
-2. Repeated k-fold Cross Validation
+2. Repeated k-fold Cross Validation   
 As part of this method, we shall use 10-fold cross validation with 5 repeats to estimate Classification Tree model. 
 
 ```{r tree2, echo = FALSE}
@@ -133,7 +134,7 @@ p2
 
 For this model, we use a regression tree with the method `gbm`.
 
-1. Bootstrap Resampling  
+1. Bootstrap Resampling   
 As part of this method, we shall use a bootstrap with 3 resamples to prepare a Boosting Tree model. 
 
 ```{r boost1, echo = FALSE, cache = TRUE}
@@ -153,7 +154,7 @@ cm3 <- confusionMatrix(pred3, val$classe)
 p3
 ```
 
-2. Repeated k-fold Cross Validation
+2. Repeated k-fold Cross Validation   
 As part of this method, we shall use 3-fold cross validation with 3 repeats to prepare a  Boosting Tree model. 
 
 ```{r boost2, echo = FALSE, cache = TRUE}
@@ -175,7 +176,7 @@ p4
 
 ### Random Forest
 
-For this model, we use a regression tree with the method `rf`.
+For this model, we use a regression tree with the method `rf`.   
 Here we use three fold cross validation in this model due the computational cost involved.
 
 ```{r rforest, echo = FALSE, cache = TRUE}
@@ -210,27 +211,34 @@ The results of the above analysis is summarized to find the model having the bes
   dt
 ```
 
-Plots showing the models with highest accuracies
-``` {r plots, echo = FALSE}
-  ggplot(model3)
+The Confusion Matrix for the Random Forest model   
+``` {r cm, echo = FALSE }
+  cm5
+```
 
+Plots showing the models with highest accuracies   
+
+* Boosting Tree Model   
+``` {r plots1, echo = FALSE}
+  ggplot(model3)
+```
+
+* Random Forest Model   
+``` {r plots2, echo = FALSE}
   ggplot(model5)
 ```
 
 
 ## Prediction and Output
 
-In this section, we use the model that we selected in the last section to predict the test data. After comparing with the correct results, we observe that our model gives **`r round(p5[1] * 100, 2)`** Accuracy.
+In this section, we use the model that we selected in the last section to predict the test data. The predictions for the test data set for each problem id are as below:
 
 ```{r Results, echo = FALSE}
 
-fitmodel <- model5
+  fitmodel <- model5
 
-test$classe <- predict(fitmodel, newdata = test)
-```
+  test$classe <- predict(fitmodel, newdata = test)
 
-The predictions for the test data set for each problem id are as below
-``` {r results2}
   dt_res <- data.frame(problem_id = test$problem_id,
              classe = test$classe)
   
